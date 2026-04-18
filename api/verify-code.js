@@ -4,7 +4,7 @@ export default async function handler(req, res) {
     }
 
     const { code } = req.body;
-    const CORRECT_CODE = 'Gamav';  // আপনার ইচ্ছেমতো পরিবর্তন করতে পারেন
+    const CORRECT_CODE = '143';  // আপনার ইচ্ছেমতো পরিবর্তন করতে পারেন
 
     if (!code || code.trim().toUpperCase() !== CORRECT_CODE) {
         return res.status(401).json({ error: 'Invalid security code' });
