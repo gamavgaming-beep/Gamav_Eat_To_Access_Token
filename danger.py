@@ -1,0 +1,742 @@
+from flask import Flask, request, jsonify
+import requests
+import json
+import base64
+import time
+from urllib.parse import urlparse, parse_qs
+
+app = Flask(__name__)
+
+# ---------- Session Token ----------
+def create_session_token():
+    data = {
+        "authenticated": True,
+        "timestamp": int(time.time()),
+        "expires": int(time.time()) + 600
+    }
+    return base64.b64encode(json.dumps(data).encode()).decode()
+
+def verify_session_token(token):
+    try:
+        data = json.loads(base64.b64decode(token).decode())
+        return data.get("authenticated") and data.get("expires", 0) > time.time()
+    except:
+        return False
+
+# ---------- EAT → Access Token ----------
+PLATFORM_MAP = {3: "Facebook", 4: "Guest", 5: "VK", 8: "Google", 10: "AppleId", 11: "X (Twitter)"}
+
+def extract_params_from_url(url: str):
+    parsed = urlparse(url)
+    params = parse_qs(parsed.query)
+    result = {}
+    if 'access_token' in params:
+        result['access_token'] = params['access_token'][0]
+    if 'region' in params:
+        result['region'] = params['region'][0]
+    if 'account_id' in params:
+        result['game_uid'] = params['account_id'][0]
+    if 'nickname' in params:
+        result['nickname'] = params['nickname'][0]
+    if 'game' in params:
+        result['game'] = params['game'][0]
+    if 'lang' in params:
+        result['language'] = params['lang'][0]
+    return result
+
+def get_token_inspect_data(access_token: str):
+    try:
+        resp = requests.get(f"https://100067.connect.garena.com/oauth/token/inspect?token={access_token}", timeout=15, verify=False)
+        data = resp.json()
+        if 'open_id' in data and 'platform' in data:
+            return data
+    except:
+        pass
+    return None
+
+def eat_to_access_token(eat_token: str):
+    try:
+        callback_url = f"https://api-otrss.garena.com/support/callback/?access_token={eat_token}"
+        response = requests.get(callback_url, allow_redirects=True, timeout=30, verify=False)
+        if 'help.garena.com' in response.url:
+            params = extract_params_from_url(response.url)
+            if 'access_token' in params:
+                token_data = get_token_inspect_data(params['access_token'])
+                if token_data:
+                    return {
+                        'success': True,
+                        'access_token': params['access_token'],
+                        'expires_in': token_data.get('expires_in', 3600)
+                    }
+        return {'success': False, 'error': 'INVALID_EAT_TOKEN'}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
+
+# ---------- Revoke Access Token ----------
+def revoke_access_token(access_token: str):
+    url = f"https://100067.connect.garena.com/oauth/logout?access_token={access_token}&refresh_token=1380dcb63ab3a077dc05bdf0b25ba4497c403a5b4eae96d7203010eafa6c83a8"
+    try:
+        resp = requests.get(url, timeout=15, verify=False)
+        data = resp.json()
+        if data.get("result") == 0:
+            return {"success": True, "message": "Token revoked successfully"}
+        else:
+            return {"success": False, "error": f"Unexpected response: {data}"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+# ---------- Routes ----------
+@app.route('/')
+def index():
+    html_content = '''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>SB X FF · TOKEN MANAGER</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
+        }
+        body {
+            background: linear-gradient(145deg, #0b0f1c 0%, #1a1f30 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .card {
+            max-width: 780px;
+            width: 100%;
+            background: rgba(18, 23, 40, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 140, 0, 0.25);
+            border-radius: 42px;
+            padding: 28px 22px;
+            box-shadow: 0 25px 50px -8px rgba(0,0,0,0.8), 0 0 0 1px #ff880033 inset;
+            overflow-x: hidden;  /* 👈 prevents horizontal overflow */
+        }
+        h1 {
+            font-size: 2.2rem;
+            background: linear-gradient(135deg, #ffaa33, #ff5e1a);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .badge {
+            font-size: 1rem;
+            background: #2f3a5a;
+            padding: 6px 14px;
+            border-radius: 60px;
+            color: white;
+            -webkit-text-fill-color: white;
+            white-space: nowrap;
+        }
+        .sub {
+            color: #9aa7c7;
+            font-size: 1rem;
+            margin-bottom: 20px;
+            border-bottom: 1px dashed #ff880066;
+            padding-bottom: 12px;
+        }
+        .platform-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(105px, 1fr));
+            gap: 14px;
+            margin: 20px 0 15px;
+        }
+        .platform-btn {
+            background: #1f253e;
+            border: 1.5px solid #2f3a5a;
+            border-radius: 60px;
+            padding: 14px 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            color: white;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-decoration: none;
+            transition: 0.15s;
+            box-shadow: 0 6px 0 #0b0f17;
+        }
+        .platform-btn:hover {
+            transform: translateY(-3px);
+            border-color: #ff9900;
+            box-shadow: 0 9px 0 #0b0f17, 0 0 15px #ff9900aa;
+        }
+        .platform-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #0b0f17;
+        }
+        .platform-btn svg {
+            width: 38px;
+            height: 38px;
+        }
+        .eat-badge {
+            background: #ff7700;
+            border-radius: 60px;
+            padding: 8px 20px;
+            font-weight: 700;
+            color: white;
+            display: inline-block;
+            margin-bottom: 15px;
+        }
+        .label {
+            color: #c1cef0;
+            font-weight: 500;
+            font-size: 1rem;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .field {
+            background: #1b2137;
+            border: 1px solid #36405f;
+            border-radius: 44px;
+            padding: 16px 24px;
+            width: 100%;
+            font-size: 1.1rem;
+            color: white;
+            outline: none;
+            transition: 0.2s;
+        }
+        .field:focus {
+            border-color: #ff9900;
+            box-shadow: 0 0 0 3px #ff990030;
+        }
+        .btn-secondary {
+            background: linear-gradient(145deg, #ff9900, #ff5500);
+            border: none;
+            border-radius: 60px;
+            padding: 18px 24px;
+            font-weight: 800;
+            font-size: 1.2rem;
+            color: white;
+            text-shadow: 0 2px 4px black;
+            box-shadow: 0 8px 0 #992b00;
+            cursor: pointer;
+            width: 100%;
+            transition: 0.08s linear;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .btn-secondary:active {
+            transform: translateY(5px);
+            box-shadow: 0 3px 0 #992b00;
+        }
+        .result-box {
+            background: #050914;
+            border-radius: 32px;
+            padding: 22px;
+            margin: 20px 0;
+            border: 1px solid #ffaa3350;
+            word-break: break-word;
+        }
+        .data-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #2f3a5a;
+            padding: 12px 0;
+            color: #e1e9ff;
+            gap: 10px;
+        }
+        .data-row:last-child {
+            border-bottom: none;
+        }
+        .data-label {
+            font-weight: 300;
+            color: #ffb05c;
+        }
+        .footer-credit {
+            margin-top: 30px;
+            color: #6575a8;
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .tab-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 28px;
+            border-bottom: 1px solid #2f3a5a;
+            flex-wrap: wrap;
+        }
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 12px 24px;
+            font-weight: 700;
+            color: #9aa7c7;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: 0.2s;
+        }
+        .tab-btn.active {
+            color: #ff9900;
+            border-bottom: 3px solid #ff9900;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        /* ---------- FIXED DEVELOPER SECTION ---------- */
+        .developer-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: #1f253e;
+            border-radius: 60px;
+            padding: 12px 20px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: 0.2s;
+            width: 100%;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+        .developer-item:hover {
+            background: #2f3a5a;
+            transform: translateX(8px);
+        }
+        .developer-info {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-width: 0;  /* for text truncation */
+        }
+        .developer-info small {
+            color: #ffaa33;
+            font-size: 0.7rem;
+        }
+        .code-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        .code-card {
+            max-width: 480px;
+            width: 90%;
+            background: #121728;
+            border: 1px solid #ff8800aa;
+            border-radius: 48px;
+            padding: 32px 24px;
+            box-shadow: 0 25px 50px -8px #000, 0 0 0 2px #ff8800 inset;
+            text-align: center;
+        }
+        .code-card h2 {
+            font-size: 2rem;
+            background: linear-gradient(135deg, #ffaa33, #ff5e1a);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+        }
+        .code-field {
+            background: #1b2137;
+            border: 2px solid #ff8800;
+            border-radius: 60px;
+            padding: 18px 24px;
+            width: 100%;
+            font-size: 1.8rem;
+            letter-spacing: 8px;
+            text-align: center;
+            color: white;
+            outline: none;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+        .code-field:focus {
+            box-shadow: 0 0 0 4px #ff990060;
+        }
+        .code-btn {
+            background: linear-gradient(145deg, #ff9900, #ff5500);
+            border: none;
+            border-radius: 60px;
+            padding: 18px 24px;
+            font-weight: 800;
+            font-size: 1.4rem;
+            color: white;
+            text-shadow: 0 2px 4px black;
+            box-shadow: 0 8px 0 #992b00, 0 4px 25px #ff8800;
+            cursor: pointer;
+            width: 100%;
+            transition: 0.08s linear;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .code-btn:active {
+            transform: translateY(5px);
+            box-shadow: 0 3px 0 #992b00, 0 6px 20px #ffaa00;
+        }
+        .error-message {
+            color: #ff6666;
+            margin-top: 15px;
+            font-weight: 600;
+        }
+        .session-info {
+            font-size: 0.8rem;
+            color: #6575a8;
+            margin-top: 20px;
+        }
+        .loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,140,0,0.3);
+            border-radius: 50%;
+            border-top-color: #ff8800;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .hidden { display: none !important; }
+        @media (max-width: 600px) {
+            .card { padding: 20px 16px; }
+            h1 { font-size: 1.6rem; }
+            .platform-grid { grid-template-columns: repeat(2, 1fr); }
+            .tab-btn { padding: 8px 16px; font-size: 0.9rem; }
+            .code-field { font-size: 1.4rem; letter-spacing: 4px; }
+            .developer-item { padding: 10px 16px; }
+        }
+        @media (max-width: 480px) {
+            .platform-btn span { font-size: 0.75rem; }
+            .platform-btn svg { width: 28px; height: 28px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Security Overlay -->
+    <div id="codeOverlay" class="code-overlay">
+        <div class="code-card">
+            <h2>🔐 SB-X TOKEN MANAGER</h2>
+            <p>Enter security code to access the panel</p>
+            <input type="text" id="securityCode" class="code-field" maxlength="10" placeholder="CODE" autofocus>
+            <button class="code-btn" id="verifyBtn">
+                <span id="verifyBtnText">VERIFY & ENTER</span>
+                <span id="verifyLoader" class="loader hidden"></span>
+            </button>
+            <div id="codeError" class="error-message"></div>
+            <div class="session-info">Session expires after 10 minutes • IP & Device bound</div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div id="mainContent" class="card" style="display:none;">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+            <h1>🔥 SB X FF <span class="badge">TOKEN MANAGER</span></h1>
+            <div class="emoji-large">⚡</div>
+        </div>
+        <div class="sub">manage your access tokens with ease</div>
+
+        <div class="tab-bar">
+            <button class="tab-btn active" id="tab1">GET EAT TOKEN</button>
+            <button class="tab-btn" id="tab2">ACCESS TOKEN</button>
+            <button class="tab-btn" id="tab3">DEVELOPER</button>
+        </div>
+
+        <!-- Tab 1 -->
+        <div id="tab1Content" class="tab-content active">
+            <div class="section-card">
+                <div><span class="eat-badge">🍽️ GET EAT TOKEN</span></div>
+                <div class="platform-grid">
+                    <a class="platform-btn" href="https://auth.garena.com/universal/oauth?platform=8&response_type=code&locale=en-SG&client_id=100067&redirect_uri=https://api.ff.garena.co.id/auth/auth/callback_n?site=https://api-ticket.ff.gameid.garena.co.id/oauth/callback_redirect/">
+                        <svg viewBox="0 0 24 24" width="38" height="38"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                        <span>Google</span>
+                    </a>
+                    <a class="platform-btn" href="https://auth.garena.com/universal/oauth?platform=3&response_type=code&locale=en-SG&client_id=100067&redirect_uri=https://api.ff.garena.co.id/auth/auth/callback_n?site=https://api-ticket.ff.gameid.garena.co.id/oauth/callback_redirect/">
+                        <svg viewBox="0 0 24 24" width="38" height="38"><path d="M24 12.073C24 5.404 18.627 0 12 0S0 5.404 0 12.073C0 18.1 4.388 23.095 10.125 24v-8.437H7.078v-3.49h3.047v-2.66c0-3.025 1.792-4.697 4.533-4.697 1.313 0 2.686.236 2.686.236v2.97h-1.513c-1.491 0-1.956.93-1.956 1.886v2.264h3.328l-.532 3.49h-2.796V24C19.612 23.095 24 18.1 24 12.073z" fill="#1877F2"/></svg>
+                        <span>Facebook</span>
+                    </a>
+                    <a class="platform-btn" href="https://auth.garena.com/universal/oauth?platform=11&response_type=code&locale=en-SG&client_id=100067&redirect_uri=https://api.ff.garena.co.id/auth/auth/callback_n?site=https://api-ticket.ff.gameid.garena.co.id/oauth/callback_redirect/">
+                        <svg viewBox="0 0 24 24" width="38" height="38"><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.937 4.937 0 004.604 3.417 9.868 9.868 0 01-6.102 2.104c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 0021.775-4.783 13.94 13.94 0 001.543-6.126c0-.21-.005-.42-.015-.63A9.935 9.935 0 0024 4.59z" fill="#1DA1F2"/></svg>
+                        <span>Twitter</span>
+                    </a>
+                    <a class="platform-btn" href="https://auth.garena.com/universal/oauth?platform=5&response_type=code&locale=en-SG&client_id=100067&redirect_uri=https://api.ff.garena.co.id/auth/auth/callback_n?site=https://api-ticket.ff.gameid.garena.co.id/oauth/callback_redirect/">
+                        <svg viewBox="0 0 24 24" width="38" height="38"><path d="M12.075 22.075c-5.523 0-10-4.477-10-10s4.477-10 10-10 10 4.477 10 10-4.477 10-10 10zm5.507-6.834c.342-.6.294-1.71-.893-2.747l-.016-.014c-.994-.875-1.44-1.024-1.163-1.693.183-.443.869-1.586 1.316-2.401.595-1.09.823-1.986.476-2.345-.32-.33-1.356-.145-2.332.212l-.106.04c-.476.176-.988.388-1.424.548-.7.255-1.437-.035-1.8-.343-.785-.665-1.408-1.296-1.836-1.825-.563-.69-2.078-1.717-2.63-1.318-.31.226.043 1.128.742 2.165.639.952 1.376 1.771 1.693 2.042.202.173.287.395.216.566-.148.351-.67 1.164-1.012 1.68-.393.592-.807.713-1.164.713-.876 0-2.07-1.916-2.76-3.402-.543-1.168-.942-2.202-1.076-2.572-.19-.523-.506-.89-1.024-1.084-.664-.25-1.956-.307-2.068.289-.088.474.446 1.269 1.187 2.389.96 1.445 1.982 2.633 2.558 3.224.476.493.744.948.814 1.248.058.253-.038.548-.242.86-.414.633-1.234 1.26-1.918 1.668-1.033.616-1.977.965-2.266 1.375-.342.485-.066 1.343.504 1.79 1.129.883 2.668 1.103 4.017.599 1.092-.407 2.058-1.12 2.735-1.926.442-.526.818-1.095 1.092-1.663.127.075.256.148.387.216 1.286.666 2.878 1.031 3.96.521 1.018-.478 1.484-1.621 1.181-2.342z" fill="#4C75A3"/></svg>
+                        <span>VK</span>
+                    </a>
+                    <a class="platform-btn" href="https://auth.garena.com/universal/oauth?platform=10&response_type=code&locale=en-SG&client_id=100067&redirect_uri=https://api.ff.garena.co.id/auth/auth/callback_n?site=https://api-ticket.ff.gameid.garena.co.id/oauth/callback_redirect/">
+                        <svg viewBox="0 0 24 24" width="38" height="38"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.369.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.69 3.56-1.702z" fill="#ffffff"/></svg>
+                        <span>Apple</span>
+                    </a>
+                </div>
+                <p class="note">Click any platform to get your Eat Token via OAuth</p>
+            </div>
+        </div>
+
+        <!-- Tab 2 -->
+        <div id="tab2Content" class="tab-content">
+            <div class="section-card">
+                <div><span class="eat-badge">🍽️ EAT → ACCESS TOKEN</span></div>
+                <label class="label">📦 ENTER YOUR EAT TOKEN</label>
+                <input type="text" id="eatTokenInput" class="field" placeholder="EAT_xxxxxxxx...">
+                <div style="margin-top: 15px;">
+                    <button class="btn-secondary" id="convertBtn">
+                        <span id="convertBtnText">🔄 CONVERT TO ACCESS TOKEN</span>
+                        <span id="convertLoader" class="loader hidden"></span>
+                    </button>
+                </div>
+                <div id="convertResult" class="result-box hidden">
+                    <div class="data-row"><span class="data-label">🔑 Access Token</span><span id="accessTokenDisplay">---</span></div>
+                    <div class="data-row"><span class="data-label">⏱️ Expires</span><span id="expiresDisplay">---</span></div>
+                </div>
+            </div>
+            <div class="section-card">
+                <div><span class="eat-badge" style="background:#aa4400;">🗑️ REVOKE ACCESS TOKEN</span></div>
+                <label class="label">🔐 ENTER YOUR ACCESS TOKEN</label>
+                <input type="text" id="revokeTokenInput" class="field" placeholder="Access token...">
+                <div style="margin-top: 15px;">
+                    <button class="btn-secondary" id="revokeBtn">
+                        <span id="revokeBtnText">🗑️ REVOKE TOKEN</span>
+                        <span id="revokeLoader" class="loader hidden"></span>
+                    </button>
+                </div>
+                <div id="revokeResult" class="result-box hidden"><span id="revokeMessage"></span></div>
+            </div>
+        </div>
+
+        <!-- Tab 3: DEVELOPER (Fixed) -->
+        <div id="tab3Content" class="tab-content">
+            <div class="section-card">
+                <div><span class="eat-badge">👨‍💻 DEVELOPER</span></div>
+                <div class="developer-item" onclick="window.open('https://t.me/Izunao', '_blank')">
+                    <i class="fab fa-telegram-plane"></i>
+                    <div class="developer-info">@Izunao<small>Developer</small></div>
+                </div>
+                <div class="developer-item" onclick="window.open('https://t.me/sbnickname', '_blank')">
+                    <i class="fab fa-telegram-plane"></i>
+                    <div class="developer-info">SB-XFILE<small>Official Channel</small></div>
+                </div>
+                <div class="developer-item" onclick="window.open('https://t.me/sbxffapi', '_blank')">
+                    <i class="fab fa-telegram-plane"></i>
+                    <div class="developer-info">sbxffapi<small>API Channel</small></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-credit">
+            <span>⚡ Fast</span>
+            <span>🔒 Secure proxy</span>
+            <span>💬 @Izunao</span>
+        </div>
+    </div>
+
+    <script>
+        let authToken = null;
+        const overlay = document.getElementById('codeOverlay');
+        const mainContent = document.getElementById('mainContent');
+        const codeInput = document.getElementById('securityCode');
+        const verifyBtn = document.getElementById('verifyBtn');
+        const verifyBtnText = document.getElementById('verifyBtnText');
+        const verifyLoader = document.getElementById('verifyLoader');
+        const errorDiv = document.getElementById('codeError');
+
+        async function verifyCode() {
+            const code = codeInput.value.trim();
+            if (!code) { errorDiv.textContent = '❌ Please enter a code'; return; }
+            verifyBtnText.classList.add('hidden');
+            verifyLoader.classList.remove('hidden');
+            verifyBtn.disabled = true;
+            errorDiv.textContent = '';
+            try {
+                const res = await fetch('/api/verify-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: code })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+                authToken = data.token;
+                sessionStorage.setItem('sb_x_token', authToken);
+                overlay.style.display = 'none';
+                mainContent.style.display = 'block';
+            } catch (err) {
+                errorDiv.textContent = '❌ ' + err.message;
+                codeInput.value = '';
+                codeInput.focus();
+            } finally {
+                verifyBtnText.classList.remove('hidden');
+                verifyLoader.classList.add('hidden');
+                verifyBtn.disabled = false;
+            }
+        }
+        verifyBtn.onclick = verifyCode;
+        codeInput.onkeypress = e => { if(e.key === 'Enter') verifyCode(); };
+
+        function checkSession() {
+            const stored = sessionStorage.getItem('sb_x_token');
+            if(stored) {
+                authToken = stored;
+                overlay.style.display = 'none';
+                mainContent.style.display = 'block';
+                return true;
+            }
+            return false;
+        }
+        if(!checkSession()) { overlay.style.display = 'flex'; mainContent.style.display = 'none'; }
+
+        // Tabs
+        const tab1 = document.getElementById('tab1'), tab2 = document.getElementById('tab2'), tab3 = document.getElementById('tab3');
+        const c1 = document.getElementById('tab1Content'), c2 = document.getElementById('tab2Content'), c3 = document.getElementById('tab3Content');
+        function activate(t) {
+            [tab1,tab2,tab3].forEach(btn=>btn.classList.remove('active'));
+            [c1,c2,c3].forEach(con=>con.classList.remove('active'));
+            if(t===1){ tab1.classList.add('active'); c1.classList.add('active'); }
+            else if(t===2){ tab2.classList.add('active'); c2.classList.add('active'); }
+            else{ tab3.classList.add('active'); c3.classList.add('active'); }
+        }
+        tab1.onclick = ()=>activate(1); tab2.onclick = ()=>activate(2); tab3.onclick = ()=>activate(3);
+
+        async function apiCall(url, body) {
+            if (!authToken) throw new Error('Not authenticated');
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                body: JSON.stringify(body)
+            });
+            if (response.status === 401) {
+                sessionStorage.removeItem('sb_x_token');
+                location.reload();
+                throw new Error('Session expired');
+            }
+            return response;
+        }
+
+        // Convert EAT
+        const convertBtn = document.getElementById('convertBtn');
+        const convertBtnTextSpan = document.getElementById('convertBtnText');
+        const convertLoaderSpan = document.getElementById('convertLoader');
+        const eatInput = document.getElementById('eatTokenInput');
+        const convertResultDiv = document.getElementById('convertResult');
+        const accessSpan = document.getElementById('accessTokenDisplay');
+        const expiresSpan = document.getElementById('expiresDisplay');
+        async function convertEat() {
+            const eat = eatInput.value.trim();
+            if(!eat) { alert('Enter Eat Token'); return; }
+            convertBtnTextSpan.classList.add('hidden');
+            convertLoaderSpan.classList.remove('hidden');
+            convertBtn.disabled = true;
+            convertResultDiv.classList.add('hidden');
+            try {
+                const res = await apiCall('/api/convert-eat', { eat_token: eat });
+                const data = await res.json();
+                if(!res.ok) throw new Error(data.error);
+                accessSpan.innerText = data.access_token;
+                expiresSpan.innerText = data.expires_in + ' sec';
+                convertResultDiv.classList.remove('hidden');
+            } catch(err) { alert('Error: '+err.message); }
+            finally {
+                convertBtnTextSpan.classList.remove('hidden');
+                convertLoaderSpan.classList.add('hidden');
+                convertBtn.disabled = false;
+            }
+        }
+        convertBtn.onclick = convertEat;
+        eatInput.onkeypress = e => { if(e.key === 'Enter') convertEat(); };
+
+        // Revoke
+        const revokeBtn = document.getElementById('revokeBtn');
+        const revokeBtnTextSpan = document.getElementById('revokeBtnText');
+        const revokeLoaderSpan = document.getElementById('revokeLoader');
+        const revokeInput = document.getElementById('revokeTokenInput');
+        const revokeResultDiv = document.getElementById('revokeResult');
+        const revokeMsgSpan = document.getElementById('revokeMessage');
+        async function revokeToken() {
+            const token = revokeInput.value.trim();
+            if(!token) { alert('Enter Access Token'); return; }
+            revokeBtnTextSpan.classList.add('hidden');
+            revokeLoaderSpan.classList.remove('hidden');
+            revokeBtn.disabled = true;
+            revokeResultDiv.classList.add('hidden');
+            try {
+                const res = await apiCall('/api/revoke-access', { access_token: token });
+                const data = await res.json();
+                if(!res.ok) throw new Error(data.error);
+                revokeMsgSpan.innerText = data.message;
+                revokeResultDiv.classList.remove('hidden');
+            } catch(err) { alert('Error: '+err.message); }
+            finally {
+                revokeBtnTextSpan.classList.remove('hidden');
+                revokeLoaderSpan.classList.add('hidden');
+                revokeBtn.disabled = false;
+            }
+        }
+        revokeBtn.onclick = revokeToken;
+        revokeInput.onkeypress = e => { if(e.key === 'Enter') revokeToken(); };
+
+        // Copy token
+        accessSpan.onclick = () => {
+            if(accessSpan.innerText !== '---') navigator.clipboard.writeText(accessSpan.innerText);
+        };
+    </script>
+</body>
+</html>'''
+    return html_content
+
+@app.route('/api/verify-code', methods=['POST'])
+def verify_code():
+    data = request.get_json()
+    code = data.get('code', '').strip().upper()
+    if code == 'SB':
+        return jsonify({'success': True, 'token': create_session_token(), 'expires_in': 600})
+    return jsonify({'error': 'Invalid security code'}), 401
+
+@app.route('/api/convert-eat', methods=['POST'])
+def convert_eat():
+    auth = request.headers.get('Authorization')
+    if not auth or not auth.startswith('Bearer '):
+        return jsonify({'error': 'Missing token'}), 401
+    if not verify_session_token(auth.split(' ')[1]):
+        return jsonify({'error': 'Session expired'}), 401
+    data = request.get_json()
+    eat_token = data.get('eat_token')
+    if not eat_token:
+        return jsonify({'error': 'eat_token required'}), 400
+    result = eat_to_access_token(eat_token)
+    if result.get('success'):
+        return jsonify({'access_token': result['access_token'], 'expires_in': result.get('expires_in', 3600)})
+    return jsonify({'error': result.get('error', 'Conversion failed')}), 400
+
+@app.route('/api/revoke-access', methods=['POST'])
+def revoke_access():
+    auth = request.headers.get('Authorization')
+    if not auth or not auth.startswith('Bearer '):
+        return jsonify({'error': 'Missing token'}), 401
+    if not verify_session_token(auth.split(' ')[1]):
+        return jsonify({'error': 'Session expired'}), 401
+    data = request.get_json()
+    access_token = data.get('access_token')
+    if not access_token:
+        return jsonify({'error': 'access_token required'}), 400
+    result = revoke_access_token(access_token)
+    if result.get('success'):
+        return jsonify({'message': result['message']})
+    return jsonify({'error': result.get('error', 'Revoke failed')}), 400
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=8000, debug=True)
