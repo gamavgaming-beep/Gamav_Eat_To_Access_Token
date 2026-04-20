@@ -1,487 +1,240 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>GAMAV FF · TOKEN MANAGER</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css">
-    <style>
-        /* ---------- সিকিউরিটি ওভারলে স্টাইল ---------- */
-        .code-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9);
-            backdrop-filter: blur(8px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-        }
-        .code-card {
-            max-width: 480px;
-            width: 90%;
-            background: #121728;
-            border: 1px solid #ff8800aa;
-            border-radius: 48px;
-            padding: 32px 24px;
-            box-shadow: 0 25px 50px -8px #000, 0 0 0 2px #ff8800 inset;
-            text-align: center;
-        }
-        .code-card h2 {
-            font-size: 2.2rem;
-            background: linear-gradient(135deg, #ffaa33, #ff5e1a);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 20px;
-        }
-        .code-card p {
-            color: #c1cef0;
-            font-size: 1rem;
-            margin-bottom: 30px;
-            border-bottom: 1px dashed #ff880066;
-            padding-bottom: 20px;
-        }
-        .code-field {
-            background: #1b2137;
-            border: 2px solid #ff8800;
-            border-radius: 60px;
-            padding: 18px 24px;
-            width: 100%;
-            font-size: 1.8rem;
-            letter-spacing: 8px;
-            text-align: center;
-            color: white;
-            outline: none;
-            margin-bottom: 20px;
-            font-weight: 700;
-        }
-        .code-field:focus {
-            box-shadow: 0 0 0 4px #ff990060;
-        }
-        .code-btn {
-            background: linear-gradient(145deg, #ff9900, #ff5500);
-            border: none;
-            border-radius: 60px;
-            padding: 18px 24px;
-            font-weight: 800;
-            font-size: 1.6rem;
-            color: white;
-            text-shadow: 0 2px 4px black;
-            box-shadow: 0 8px 0 #992b00, 0 4px 25px #ff8800;
-            cursor: pointer;
-            width: 100%;
-            transition: 0.08s linear;
-        }
-        .code-btn:active {
-            transform: translateY(5px);
-            box-shadow: 0 3px 0 #992b00, 0 6px 20px #ffaa00;
-        }
-        .error-message {
-            color: #ff6666;
-            margin-top: 15px;
-            font-weight: 600;
-        }
-        .session-info {
-            font-size: 0.8rem;
-            color: #6575a8;
-            margin-top: 20px;
-        }
-        #mainContent {
-            display: none;  /* প্রথমে লুকানো */
-        }
-        .loader {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255,140,0,0.3);
-            border-radius: 50%;
-            border-top-color: #ff8800;
-            animation: spin 1s ease-in-out infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .hidden { display: none !important; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GAMAV PRO TOKEN MANAGER</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Poppins',sans-serif;
+}
+
+body{
+    background: linear-gradient(135deg,#0f172a,#020617);
+    color:white;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+/* Glass Card */
+.card{
+    width:95%;
+    max-width:1100px;
+    padding:30px;
+    border-radius:30px;
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(20px);
+    border:1px solid rgba(255,255,255,0.1);
+    box-shadow:0 0 40px rgba(0,0,0,0.6);
+    animation:fadeIn 0.6s ease;
+}
+
+@keyframes fadeIn{
+    from{opacity:0; transform:translateY(20px);}
+    to{opacity:1; transform:translateY(0);}
+}
+
+/* Header */
+.header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:20px;
+}
+
+.header h1{
+    font-size:28px;
+    font-weight:800;
+    background:linear-gradient(90deg,#ff7a18,#ffb347);
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+}
+
+/* Tabs */
+.tabs{
+    display:flex;
+    gap:10px;
+    margin:20px 0;
+}
+
+.tab{
+    flex:1;
+    padding:12px;
+    border-radius:20px;
+    text-align:center;
+    cursor:pointer;
+    background:rgba(255,255,255,0.05);
+    transition:0.3s;
+}
+
+.tab.active{
+    background:linear-gradient(135deg,#ff7a18,#ff3d00);
+    box-shadow:0 0 20px #ff6a00;
+}
+
+/* Content */
+.section{
+    display:none;
+    animation:fadeIn 0.4s ease;
+}
+
+.section.active{
+    display:block;
+}
+
+/* Input */
+.input{
+    width:100%;
+    padding:15px;
+    border-radius:20px;
+    border:none;
+    outline:none;
+    background:rgba(255,255,255,0.08);
+    color:white;
+    margin-top:10px;
+}
+
+/* Button */
+.btn{
+    margin-top:15px;
+    width:100%;
+    padding:15px;
+    border:none;
+    border-radius:20px;
+    font-weight:600;
+    cursor:pointer;
+    background:linear-gradient(135deg,#ff7a18,#ff3d00);
+    color:white;
+    transition:0.2s;
+}
+
+.btn:hover{
+    transform:scale(1.05);
+    box-shadow:0 0 20px #ff6a00;
+}
+
+/* Result Box */
+.result{
+    margin-top:15px;
+    padding:15px;
+    border-radius:15px;
+    background:rgba(0,0,0,0.4);
+}
+
+/* Overlay */
+.overlay{
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:black;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.login-box{
+    padding:30px;
+    border-radius:25px;
+    background:rgba(255,255,255,0.05);
+    backdrop-filter:blur(20px);
+    text-align:center;
+}
+
+</style>
 </head>
+
 <body>
-    <!-- সিকিউরিটি ওভারলে -->
-    <div id="codeOverlay" class="code-overlay">
-        <div class="code-card">
-            <h2>Gamav_Official TOKEN MANAGER</h2>
-            <p>Enter security code to access the panel</p>
-            <input type="text" id="securityCode" class="code-field" maxlength="10" placeholder="CODE" autofocus>
-            <button class="code-btn" id="verifyBtn">
-                <span id="verifyBtnText">VERIFY & ENTER</span>
-                <span id="verifyLoader" class="loader hidden"></span>
-            </button>
-            <div id="codeError" class="error-message"></div>
-            <div class="session-info">Session expires after 10 minutes • IP & Device bound</div>
+
+<!-- LOGIN -->
+<div class="overlay" id="overlay">
+    <div class="login-box">
+        <h2>ENTER ACCESS CODE</h2>
+        <input id="code" class="input" placeholder="CODE">
+        <button class="btn" onclick="login()">ENTER</button>
+        <p id="error" style="color:red;margin-top:10px;"></p>
+    </div>
+</div>
+
+<!-- MAIN -->
+<div class="card" id="main" style="display:none;">
+    
+    <div class="header">
+        <h1>GAMAV PRO ⚡</h1>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab(1)">GET TOKEN</div>
+        <div class="tab" onclick="switchTab(2)">ACCESS</div>
+        <div class="tab" onclick="switchTab(3)">DEV</div>
+    </div>
+
+    <!-- TAB 1 -->
+    <div class="section active" id="tab1">
+        <h3>GET TOKEN</h3>
+        <button class="btn" onclick="alert('OAuth Redirect')">LOGIN WITH GOOGLE</button>
+    </div>
+
+    <!-- TAB 2 -->
+    <div class="section" id="tab2">
+        <h3>CONVERT TOKEN</h3>
+        <input class="input" id="eat" placeholder="Enter EAT Token">
+        <button class="btn" onclick="convert()">CONVERT</button>
+
+        <div class="result" id="result" style="display:none;">
+            <p id="token"></p>
         </div>
     </div>
 
-    <!-- মূল ড্যাশবোর্ড (আপনার দেওয়া সম্পূর্ণ ফিচার) -->
-    <div id="mainContent" class="card">
-        <!-- হেডার -->
-        <div style="display: flex; align-items: center; justify-content: space-between;">
-            <h1>GAMAV X FF <span class="badge">TOKEN MANAGER</span></h1>
-            <div class="emoji-large">⚡</div>
-        </div>
-        <div class="sub">manage your access tokens with ease</div>
-
-        <!-- ট্যাব বার -->
-        <div class="tab-bar">
-            <button class="tab-btn active" id="tab1">GET EAT TOKEN</button>
-            <button class="tab-btn" id="tab2">ACCESS TOKEN</button>
-            <button class="tab-btn" id="tab3">DEVELOPER</button>
-        </div>
-
-        <!-- ট্যাব ১: GET EAT TOKEN -->
-        <div id="tab1Content" class="tab-content active">
-            <div class="section-card">
-                <div style="margin-bottom: 20px;">
-                    <span class="eat-badge">🍽️ GET EAT TOKEN</span>
-                </div>
-                <div class="platform-grid">
-                    <!-- Google -->
-                    <a class="platform-btn" href="https://auth.garena.com/universal/oauth?platform=8&response_type=code&locale=en-SG&client_id=100067&redirect_uri=https://api.ff.garena.co.id/auth/auth/callback_n?site=https://api-ticket.ff.gameid.garena.co.id/oauth/callback_redirect/">
-                        <svg viewBox="0 0 24 24" width="38" height="38"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-                        <span>Google</span>
-                    </a>
-                    <!-- Facebook -->
-                    <a class="platform-btn" href="https://auth.garena.com/universal/oauth?platform=3&response_type=code&locale=en-SG&client_id=100067&redirect_uri=https://api.ff.garena.co.id/auth/auth/callback_n?site=https://api-ticket.ff.gameid.garena.co.id/oauth/callback_redirect/">
-                        <svg viewBox="0 0 24 24" width="38" height="38"><path d="M24 12.073C24 5.404 18.627 0 12 0S0 5.404 0 12.073C0 18.1 4.388 23.095 10.125 24v-8.437H7.078v-3.49h3.047v-2.66c0-3.025 1.792-4.697 4.533-4.697 1.313 0 2.686.236 2.686.236v2.97h-1.513c-1.491 0-1.956.93-1.956 1.886v2.264h3.328l-.532 3.49h-2.796V24C19.612 23.095 24 18.1 24 12.073z" fill="#1877F2"/></svg>
-                        <span>Facebook</span>
-                    </a>
-                    <!-- Twitter -->
-                    <a class="platform-btn" href="https://auth.garena.com/universal/oauth?platform=11&response_type=code&locale=en-SG&client_id=100067&redirect_uri=https://api.ff.garena.co.id/auth/auth/callback_n?site=https://api-ticket.ff.gameid.garena.co.id/oauth/callback_redirect/">
-                        <svg viewBox="0 0 24 24" width="38" height="38"><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.937 4.937 0 004.604 3.417 9.868 9.868 0 01-6.102 2.104c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 0021.775-4.783 13.94 13.94 0 001.543-6.126c0-.21-.005-.42-.015-.63A9.935 9.935 0 0024 4.59z" fill="#1DA1F2"/></svg>
-                        <span>Twitter</span>
-                    </a>
-                    <!-- VK -->
-                    <a class="platform-btn" href="https://auth.garena.com/universal/oauth?platform=5&response_type=code&locale=en-SG&client_id=100067&redirect_uri=https://api.ff.garena.co.id/auth/auth/callback_n?site=https://api-ticket.ff.gameid.garena.co.id/oauth/callback_redirect/">
-                        <svg viewBox="0 0 24 24" width="38" height="38"><path d="M12.075 22.075c-5.523 0-10-4.477-10-10s4.477-10 10-10 10 4.477 10 10-4.477 10-10 10zm5.507-6.834c.342-.6.294-1.71-.893-2.747l-.016-.014c-.994-.875-1.44-1.024-1.163-1.693.183-.443.869-1.586 1.316-2.401.595-1.09.823-1.986.476-2.345-.32-.33-1.356-.145-2.332.212l-.106.04c-.476.176-.988.388-1.424.548-.7.255-1.437-.035-1.8-.343-.785-.665-1.408-1.296-1.836-1.825-.563-.69-2.078-1.717-2.63-1.318-.31.226.043 1.128.742 2.165.639.952 1.376 1.771 1.693 2.042.202.173.287.395.216.566-.148.351-.67 1.164-1.012 1.68-.393.592-.807.713-1.164.713-.876 0-2.07-1.916-2.76-3.402-.543-1.168-.942-2.202-1.076-2.572-.19-.523-.506-.89-1.024-1.084-.664-.25-1.956-.307-2.068.289-.088.474.446 1.269 1.187 2.389.96 1.445 1.982 2.633 2.558 3.224.476.493.744.948.814 1.248.058.253-.038.548-.242.86-.414.633-1.234 1.26-1.918 1.668-1.033.616-1.977.965-2.266 1.375-.342.485-.066 1.343.504 1.79 1.129.883 2.668 1.103 4.017.599 1.092-.407 2.058-1.12 2.735-1.926.442-.526.818-1.095 1.092-1.663.127.075.256.148.387.216 1.286.666 2.878 1.031 3.96.521 1.018-.478 1.484-1.621 1.181-2.342z" fill="#4C75A3"/></svg>
-                        <span>VK</span>
-                    </a>
-                    <!-- Apple -->
-                    <a class="platform-btn" href="https://auth.garena.com/universal/oauth?platform=10&response_type=code&locale=en-SG&client_id=100067&redirect_uri=https://api.ff.garena.co.id/auth/auth/callback_n?site=https://api-ticket.ff.gameid.garena.co.id/oauth/callback_redirect/">
-                        <svg viewBox="0 0 24 24" width="38" height="38"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.369.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.69 3.56-1.702z" fill="#ffffff"/></svg>
-                        <span>Apple</span>
-                    </a>
-                </div>
-                <p class="note">Click any platform to get your Eat Token via OAuth</p>
-            </div>
-        </div>
-
-        <!-- ট্যাব ২: ACCESS TOKEN -->
-        <div id="tab2Content" class="tab-content">
-            <!-- EAT → Access Token -->
-            <div class="section-card">
-                <div style="margin-bottom: 20px;">
-                    <span class="eat-badge">🍽️ EAT → ACCESS TOKEN</span>
-                </div>
-                <label class="label">📦 ENTER YOUR EAT TOKEN</label>
-                <input type="text" id="eatTokenInput" class="field" placeholder="EAT_xxxxxxxx...">
-                <div style="margin-top: 15px;">
-                    <button class="btn-secondary" id="convertBtn">
-                        <span id="convertBtnText">🔄 CONVERT TO ACCESS TOKEN</span>
-                        <span id="convertLoader" class="loader hidden"></span>
-                    </button>
-                </div>
-                <div id="convertResult" class="result-box hidden">
-                    <div class="data-row">
-                        <span class="data-label">🔑 Access Token</span>
-                        <span id="accessTokenDisplay">---</span>
-                    </div>
-                    <div class="data-row">
-                        <span class="data-label">⏱️ Expires</span>
-                        <span id="expiresDisplay">---</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Revoke Access Token -->
-            <div class="section-card">
-                <div style="margin-bottom: 20px;">
-                    <span class="eat-badge" style="background: #aa4400;">🗑️ REVOKE ACCESS TOKEN</span>
-                </div>
-                <label class="label">🔐 ENTER YOUR ACCESS TOKEN</label>
-                <input type="text" id="revokeTokenInput" class="field" placeholder="Access token...">
-                <div style="margin-top: 15px;">
-                    <button class="btn-secondary" id="revokeBtn">
-                        <span id="revokeBtnText">🗑️ REVOKE TOKEN</span>
-                        <span id="revokeLoader" class="loader hidden"></span>
-                    </button>
-                </div>
-                <div id="revokeResult" class="result-box hidden">
-                    <span id="revokeMessage">Token revoked successfully</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- ট্যাব ৩: DEVELOPER -->
-        <div id="tab3Content" class="tab-content">
-            <div class="section-card">
-                <div style="margin-bottom: 25px;">
-                    <span class="eat-badge">👨‍💻 DEVELOPER</span>
-                </div>
-                <!-- @Izunao -->
-                <div class="developer-item" onclick="window.open('https://t.me/Izunao', '_blank')">
-                    <i class="fab fa-telegram-plane"></i>
-                    <div class="developer-info">
-                        @Izunao
-                        <small>Developer</small>
-                    </div>
-                </div>
-                <!-- Official Channel: SB-XFILE -->
-                <div class="developer-item" onclick="window.open('https://t.me/sbnickname', '_blank')">
-                    <i class="fab fa-telegram-plane"></i>
-                    <div class="developer-info">
-                        SB-XFILE
-                        <small>Official Channel</small>
-                    </div>
-                </div>
-                <!-- API Channel: SB-X API -->
-                <div class="developer-item" onclick="window.open('https://t.me/sbxffapi', '_blank')">
-                    <i class="fab fa-telegram-plane"></i>
-                    <div class="developer-info">
-                        sbxffapi
-                        <small>API Channel</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="footer-credit">
-            <span>⚡ Fast</span>
-            <span>🔒 Secure proxy</span>
-            <span>💬 @Izunao</span>
-        </div>
+    <!-- TAB 3 -->
+    <div class="section" id="tab3">
+        <h3>DEVELOPER</h3>
+        <p>@GamavBot</p>
     </div>
 
-    <script>
-        (function() {
-            let authToken = null;
+</div>
 
-            const overlay = document.getElementById('codeOverlay');
-            const mainContent = document.getElementById('mainContent');
-            const codeInput = document.getElementById('securityCode');
-            const verifyBtn = document.getElementById('verifyBtn');
-            const verifyBtnText = document.getElementById('verifyBtnText');
-            const verifyLoader = document.getElementById('verifyLoader');
-            const errorDiv = document.getElementById('codeError');
+<script>
+function login(){
+    let code = document.getElementById("code").value;
 
-            // সেশন চেক
-            function checkSession() {
-                const storedToken = sessionStorage.getItem('sb_x_token');
-                if (storedToken) {
-                    try {
-                        const tokenData = JSON.parse(atob(storedToken));
-                        if (tokenData.expires > Date.now()) {
-                            authToken = storedToken;
-                            overlay.style.display = 'none';
-                            mainContent.style.display = 'block';
-                            return true;
-                        } else {
-                            sessionStorage.removeItem('sb_x_token');
-                        }
-                    } catch (e) {
-                        sessionStorage.removeItem('sb_x_token');
-                    }
-                }
-                overlay.style.display = 'flex';
-                mainContent.style.display = 'none';
-                return false;
-            }
+    if(code === "1234"){ // demo
+        document.getElementById("overlay").style.display="none";
+        document.getElementById("main").style.display="block";
+    }else{
+        document.getElementById("error").innerText="Invalid Code";
+    }
+}
 
-            // ভেরিফাই বাটন
-            async function verifyCode() {
-                const entered = codeInput.value.trim();
-                if (!entered) {
-                    errorDiv.textContent = '❌ Please enter a code';
-                    return;
-                }
+function switchTab(n){
+    document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+    document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
 
-                verifyBtnText.classList.add('hidden');
-                verifyLoader.classList.remove('hidden');
-                verifyBtn.disabled = true;
-                errorDiv.textContent = '';
+    document.querySelectorAll(".tab")[n-1].classList.add("active");
+    document.getElementById("tab"+n).classList.add("active");
+}
 
-                try {
-                    const response = await fetch('/api/verify-code', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ code: entered })
-                    });
+function convert(){
+    let token = document.getElementById("eat").value;
 
-                    const data = await response.json();
+    if(!token){
+        alert("Enter token");
+        return;
+    }
 
-                    if (!response.ok) {
-                        throw new Error(data.error || 'Verification failed');
-                    }
+    document.getElementById("result").style.display="block";
+    document.getElementById("token").innerText="ACCESS_"+Math.random().toString(36).substr(2,10);
+}
+</script>
 
-                    authToken = data.token;
-                    sessionStorage.setItem('sb_x_token', authToken);
-                    
-                    overlay.style.display = 'none';
-                    mainContent.style.display = 'block';
-                } catch (err) {
-                    errorDiv.textContent = '❌ ' + err.message;
-                    codeInput.value = '';
-                    codeInput.focus();
-                } finally {
-                    verifyBtnText.classList.remove('hidden');
-                    verifyLoader.classList.add('hidden');
-                    verifyBtn.disabled = false;
-                }
-            }
-
-            verifyBtn.addEventListener('click', verifyCode);
-            codeInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') verifyCode();
-            });
-
-            // ট্যাব সুইচিং
-            const tab1Btn = document.getElementById('tab1');
-            const tab2Btn = document.getElementById('tab2');
-            const tab3Btn = document.getElementById('tab3');
-            const tab1Content = document.getElementById('tab1Content');
-            const tab2Content = document.getElementById('tab2Content');
-            const tab3Content = document.getElementById('tab3Content');
-
-            function activateTab(tab) {
-                [tab1Btn, tab2Btn, tab3Btn].forEach(btn => btn.classList.remove('active'));
-                [tab1Content, tab2Content, tab3Content].forEach(c => c.classList.remove('active'));
-                if (tab === 1) {
-                    tab1Btn.classList.add('active');
-                    tab1Content.classList.add('active');
-                } else if (tab === 2) {
-                    tab2Btn.classList.add('active');
-                    tab2Content.classList.add('active');
-                } else {
-                    tab3Btn.classList.add('active');
-                    tab3Content.classList.add('active');
-                }
-            }
-            tab1Btn.addEventListener('click', () => activateTab(1));
-            tab2Btn.addEventListener('click', () => activateTab(2));
-            tab3Btn.addEventListener('click', () => activateTab(3));
-
-            // API কল ফাংশন (টোকেনসহ)
-            async function apiCall(url, body) {
-                if (!authToken) {
-                    throw new Error('Not authenticated');
-                }
-
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authToken}`
-                    },
-                    body: JSON.stringify(body)
-                });
-
-                if (response.status === 401) {
-                    sessionStorage.removeItem('sb_x_token');
-                    authToken = null;
-                    location.reload();
-                    throw new Error('Session expired');
-                }
-
-                return response;
-            }
-
-            // কনভার্ট EAT
-            const convertBtn = document.getElementById('convertBtn');
-            const convertBtnText = document.getElementById('convertBtnText');
-            const convertLoader = document.getElementById('convertLoader');
-            const eatTokenInput = document.getElementById('eatTokenInput');
-            const convertResult = document.getElementById('convertResult');
-            const accessTokenDisplay = document.getElementById('accessTokenDisplay');
-            const expiresDisplay = document.getElementById('expiresDisplay');
-
-            async function convertEat() {
-                const eatToken = eatTokenInput.value.trim();
-                if (!eatToken) {
-                    alert('Please enter an Eat Token');
-                    return;
-                }
-                convertBtnText.classList.add('hidden');
-                convertLoader.classList.remove('hidden');
-                convertBtn.disabled = true;
-                convertResult.classList.add('hidden');
-
-                try {
-                    const response = await apiCall('/api/convert-eat', { eat_token: eatToken });
-                    const data = await response.json();
-                    
-                    if (!response.ok) throw new Error(data.error || 'Conversion failed');
-                    
-                    accessTokenDisplay.textContent = data.access_token || 'N/A';
-                    expiresDisplay.textContent = data.expires_in ? `${data.expires_in} sec` : '--';
-                    convertResult.classList.remove('hidden');
-                } catch (err) {
-                    alert('Error: ' + err.message);
-                } finally {
-                    convertBtnText.classList.remove('hidden');
-                    convertLoader.classList.add('hidden');
-                    convertBtn.disabled = false;
-                }
-            }
-            convertBtn.addEventListener('click', convertEat);
-            eatTokenInput.addEventListener('keypress', e => { if (e.key === 'Enter') convertEat(); });
-
-            // রিভোক টোকেন
-            const revokeBtn = document.getElementById('revokeBtn');
-            const revokeBtnText = document.getElementById('revokeBtnText');
-            const revokeLoader = document.getElementById('revokeLoader');
-            const revokeTokenInput = document.getElementById('revokeTokenInput');
-            const revokeResult = document.getElementById('revokeResult');
-            const revokeMessage = document.getElementById('revokeMessage');
-
-            async function revokeToken() {
-                const token = revokeTokenInput.value.trim();
-                if (!token) {
-                    alert('Please enter an Access Token');
-                    return;
-                }
-                revokeBtnText.classList.add('hidden');
-                revokeLoader.classList.remove('hidden');
-                revokeBtn.disabled = true;
-                revokeResult.classList.add('hidden');
-
-                try {
-                    const response = await apiCall('/api/revoke-access', { access_token: token });
-                    const data = await response.json();
-                    
-                    if (!response.ok) throw new Error(data.error || 'Revoke failed');
-                    
-                    revokeMessage.textContent = data.message || 'Token revoked successfully';
-                    revokeResult.classList.remove('hidden');
-                } catch (err) {
-                    alert('Error: ' + err.message);
-                } finally {
-                    revokeBtnText.classList.remove('hidden');
-                    revokeLoader.classList.add('hidden');
-                    revokeBtn.disabled = false;
-                }
-            }
-            revokeBtn.addEventListener('click', revokeToken);
-            revokeTokenInput.addEventListener('keypress', e => { if (e.key === 'Enter') revokeToken(); });
-
-            // কপি ফিচার
-            accessTokenDisplay.addEventListener('click', function() {
-                const text = this.textContent;
-                if (text && text !== 'N/A' && text !== '---') {
-                    navigator.clipboard.writeText(text).then(() => {
-                        alert('Token copied to clipboard!');
-                    }).catch(() => alert('Copy failed'));
-                }
-            });
-
-            // পৃষ্ঠা লোডে সেশন চেক
-            checkSession();
-        })();
-    </script>
 </body>
 </html>
