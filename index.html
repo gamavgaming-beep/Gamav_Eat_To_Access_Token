@@ -9,130 +9,208 @@
 
 <style>
 
-/* ===== BODY ===== */
-body{
-    margin:0;
-    font-family:Segoe UI;
-    background: radial-gradient(circle at top,#0a0f1f,#02030a);
-    color:#e6f1ff;
+/* ===== GLOBAL ===== */
+body {
+    margin: 0;
+    font-family: 'Poppins', sans-serif;
+    background: radial-gradient(circle at top, #0a0f1f, #05070d 80%);
+    color: #fff;
 }
 
-/* ===== CARD ===== */
-.card{
-    max-width:1100px;
-    margin:30px auto;
-    padding:25px;
-    border-radius:28px;
-    background:rgba(255,255,255,0.03);
-    backdrop-filter:blur(20px);
-    border:1px solid rgba(255,255,255,0.08);
-    box-shadow:0 0 60px rgba(0,0,0,0.6);
+/* ===== OVERLAY ===== */
+.code-overlay {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.9);
+    backdrop-filter: blur(10px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-/* HEADER */
-h1{
-    font-weight:800;
-    background:linear-gradient(90deg,#ff8800,#ff3c00);
-    -webkit-background-clip:text;
-    -webkit-text-fill-color:transparent;
+.code-card {
+    background: rgba(20,25,45,0.7);
+    padding: 30px;
+    border-radius: 40px;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 0 40px #ff880066;
+    border: 1px solid #ff8800aa;
+    text-align: center;
 }
-.sub{color:#8fa6c9;margin-bottom:10px}
+
+.code-field {
+    width: 100%;
+    padding: 15px;
+    border-radius: 30px;
+    border: 2px solid #ff8800;
+    background: #0f1424;
+    color: white;
+    text-align: center;
+    font-size: 18px;
+}
+
+.code-btn {
+    width: 100%;
+    padding: 15px;
+    margin-top: 15px;
+    border-radius: 30px;
+    border: none;
+    background: linear-gradient(145deg,#ff9900,#ff5500);
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: .2s;
+}
+
+.code-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px #ff8800;
+}
+
+/* ===== MAIN CARD ===== */
+.card {
+    max-width: 1100px;
+    margin: auto;
+    margin-top: 30px;
+    padding: 20px;
+    border-radius: 30px;
+    background: rgba(20,25,45,0.6);
+    backdrop-filter: blur(20px);
+    box-shadow: 0 0 40px #ff880033;
+    border: 1px solid rgba(255,140,0,0.2);
+}
+
+/* ===== HEADER ===== */
+h1 {
+    background: linear-gradient(90deg,#ff9900,#ff3c00);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
 
 /* ===== TABS ===== */
-.tab-bar{display:flex;gap:10px;margin:15px 0}
-.tab-btn{
-    flex:1;padding:12px;border-radius:15px;
-    border:1px solid rgba(255,136,0,0.3);
-    background:rgba(255,136,0,0.05);
-    color:#ffb366;cursor:pointer;transition:.3s;
-}
-.tab-btn.active{
-    background:linear-gradient(135deg,#ff8800,#ff3c00);
-    color:#fff;box-shadow:0 0 20px #ff6600;
+.tab-bar {
+    display: flex;
+    gap: 10px;
+    margin: 20px 0;
 }
 
-/* ===== SECTIONS ===== */
-.section-card{
-    background:rgba(255,255,255,0.03);
-    border-radius:20px;
-    padding:20px;margin-top:15px;
+.tab-btn {
+    flex: 1;
+    padding: 12px;
+    border-radius: 30px;
+    border: none;
+    background: #1b2137;
+    color: #aaa;
+    cursor: pointer;
+    transition: .3s;
+}
+
+.tab-btn:hover {
+    background: #ff8800;
+    color: black;
+}
+
+.tab-btn.active {
+    background: linear-gradient(145deg,#ff9900,#ff5500);
+    color: white;
+    box-shadow: 0 0 20px #ff8800;
+}
+
+/* ===== SECTION ===== */
+.section-card {
+    background: rgba(30,36,60,0.6);
+    padding: 20px;
+    border-radius: 25px;
+    border: 1px solid rgba(255,140,0,0.15);
 }
 
 /* ===== INPUT ===== */
-.field{
-    width:100%;padding:14px;border-radius:12px;
-    border:1px solid rgba(255,255,255,0.15);
-    background:rgba(255,255,255,0.05);
-    color:white;outline:none;
+.field {
+    width: 100%;
+    padding: 12px;
+    border-radius: 15px;
+    border: 2px solid #ff8800;
+    background: #0f1424;
+    color: white;
+    margin-top: 10px;
 }
-.field:focus{border-color:#ff8800;box-shadow:0 0 10px #ff8800}
+
+.field:focus {
+    box-shadow: 0 0 10px #ff8800;
+}
 
 /* ===== BUTTON ===== */
-.btn-secondary{
-    width:100%;padding:14px;border:none;
-    border-radius:14px;font-weight:700;
-    background:linear-gradient(135deg,#ff8800,#ff3c00);
-    color:white;cursor:pointer;
-    transition:.3s;
-}
-.btn-secondary:hover{
-    transform:scale(1.03);
-    box-shadow:0 0 20px #ff6600;
-}
-
-/* RESULT */
-.result-box{
-    margin-top:15px;padding:15px;border-radius:12px;
-    background:rgba(0,0,0,0.4);
+.btn-secondary {
+    width: 100%;
+    padding: 12px;
+    border-radius: 30px;
+    border: none;
+    background: linear-gradient(145deg,#ff9900,#ff5500);
+    color: white;
+    cursor: pointer;
+    transition: .2s;
 }
 
-/* PLATFORM */
-.platform-grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
-    gap:12px;
-}
-.platform-btn{
-    padding:15px;text-align:center;border-radius:15px;
-    background:rgba(255,255,255,0.04);
-    border:1px solid rgba(255,255,255,0.1);
-    text-decoration:none;color:white;
-    transition:.3s;
-}
-.platform-btn:hover{box-shadow:0 0 20px #ff8800}
-
-/* OVERLAY */
-.code-overlay{
-    position:fixed;top:0;left:0;width:100%;height:100%;
-    background:rgba(0,0,0,0.95);
-    display:flex;align-items:center;justify-content:center;
-}
-.code-card{
-    padding:30px;border-radius:25px;text-align:center;
-    background:#0f172a;border:1px solid #ff8800;
-}
-.code-field{
-    width:100%;padding:15px;margin-top:10px;
-    border-radius:20px;border:1px solid #ff8800;
-    background:black;color:white;text-align:center;
-}
-.code-btn{
-    margin-top:10px;width:100%;padding:15px;
-    border:none;border-radius:20px;
-    background:#ff8800;color:white;
+.btn-secondary:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px #ff8800;
 }
 
-.hidden{display:none}
+/* ===== PLATFORM GRID ===== */
+.platform-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit,minmax(120px,1fr));
+    gap: 10px;
+}
+
+.platform-btn {
+    background: #121728;
+    padding: 15px;
+    border-radius: 20px;
+    text-align: center;
+    transition: .2s;
+}
+
+.platform-btn:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0 20px #ff8800;
+}
+
+/* ===== RESULT ===== */
+.result-box {
+    margin-top: 15px;
+    padding: 10px;
+    background: #0f1424;
+    border: 1px solid #ff8800;
+    border-radius: 10px;
+}
+
+/* ===== TAB CONTENT ===== */
+.tab-content {
+    display: none;
+    animation: fade .3s;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+@keyframes fade {
+    from {opacity:0; transform:translateY(10px);}
+    to {opacity:1;}
+}
+
 </style>
 </head>
 
 <body>
 
-<!-- LOGIN -->
+<!-- OVERLAY -->
 <div id="codeOverlay" class="code-overlay">
     <div class="code-card">
         <h2>ENTER CODE</h2>
-        <input id="securityCode" class="code-field">
+        <input id="securityCode" class="code-field" placeholder="CODE">
         <button id="verifyBtn" class="code-btn">ENTER</button>
         <div id="codeError"></div>
     </div>
@@ -141,74 +219,69 @@ h1{
 <!-- MAIN -->
 <div id="mainContent" class="card">
 
-<h1>GAMAV X FF</h1>
-<div class="sub">Token Manager</div>
+<h1>GAMAV FF TOKEN MANAGER</h1>
 
 <div class="tab-bar">
-<button class="tab-btn active" id="tab1">GET</button>
-<button class="tab-btn" id="tab2">ACCESS</button>
-<button class="tab-btn" id="tab3">DEV</button>
+    <button class="tab-btn active" id="tab1">GET TOKEN</button>
+    <button class="tab-btn" id="tab2">ACCESS</button>
+    <button class="tab-btn" id="tab3">DEV</button>
 </div>
 
-<div id="tab1Content" class="section-card">
-    <div class="platform-grid">
-        <a class="platform-btn">Google</a>
-        <a class="platform-btn">Facebook</a>
-    </div>
+<div id="tab1Content" class="tab-content active">
+<div class="section-card">
+<div class="platform-grid">
+<a class="platform-btn">Google</a>
+<a class="platform-btn">Facebook</a>
+<a class="platform-btn">Twitter</a>
+</div>
+</div>
 </div>
 
-<div id="tab2Content" class="section-card hidden">
-    <input id="eatTokenInput" class="field" placeholder="Enter token">
-    <button id="convertBtn" class="btn-secondary">Convert</button>
-    <div id="convertResult" class="result-box hidden">
-        <span id="accessTokenDisplay"></span>
-    </div>
+<div id="tab2Content" class="tab-content">
+<div class="section-card">
+<input class="field" placeholder="Enter Token">
+<button class="btn-secondary">Convert</button>
+</div>
 </div>
 
-<div id="tab3Content" class="section-card hidden">
-    Developer: GAMAV
+<div id="tab3Content" class="tab-content">
+<div class="section-card">
+Developer Panel
+</div>
 </div>
 
 </div>
 
 <script>
 
-let auth=false;
+/* SIMPLE UI LOGIC (UNCHANGED STYLE PURPOSE) */
 
-verifyBtn.onclick=()=>{
-    if(securityCode.value==="gamav"){
-        codeOverlay.style.display="none";
-        mainContent.style.display="block";
-        auth=true;
-    }else{
-        codeError.innerText="Wrong code";
-    }
-};
+const tabs = [
+{btn:'tab1', content:'tab1Content'},
+{btn:'tab2', content:'tab2Content'},
+{btn:'tab3', content:'tab3Content'}
+];
 
-tab1.onclick=()=>show(1);
-tab2.onclick=()=>show(2);
-tab3.onclick=()=>show(3);
-
-function show(n){
-    tab1Content.classList.add("hidden");
-    tab2Content.classList.add("hidden");
-    tab3Content.classList.add("hidden");
-
-    tab1.classList.remove("active");
-    tab2.classList.remove("active");
-    tab3.classList.remove("active");
-
-    if(n==1){tab1Content.classList.remove("hidden");tab1.classList.add("active")}
-    if(n==2){tab2Content.classList.remove("hidden");tab2.classList.add("active")}
-    if(n==3){tab3Content.classList.remove("hidden");tab3.classList.add("active")}
+tabs.forEach(t=>{
+document.getElementById(t.btn).onclick=()=>{
+tabs.forEach(x=>{
+document.getElementById(x.btn).classList.remove('active');
+document.getElementById(x.content).classList.remove('active');
+});
+document.getElementById(t.btn).classList.add('active');
+document.getElementById(t.content).classList.add('active');
 }
+});
 
-convertBtn.onclick=()=>{
-    if(!eatTokenInput.value)return alert("Enter token");
-
-    convertResult.classList.remove("hidden");
-    accessTokenDisplay.innerText="ACCESS_"+Math.random().toString(36).substring(2,12);
-};
+document.getElementById('verifyBtn').onclick=()=>{
+const code=document.getElementById('securityCode').value;
+if(code==="1234"){
+document.getElementById('codeOverlay').style.display="none";
+document.getElementById('mainContent').style.display="block";
+}else{
+document.getElementById('codeError').innerText="Wrong Code";
+}
+}
 
 </script>
 
