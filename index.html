@@ -1,94 +1,4 @@
-from flask import Flask, request, jsonify
-import requests
-import json
-import base64
-import time
-from urllib.parse import urlparse, parse_qs
-
-app = Flask(__name__)
-
-# ---------- Session Token ----------
-def create_session_token():
-    data = {
-        "authenticated": True,
-        "timestamp": int(time.time()),
-        "expires": int(time.time()) + 600
-    }
-    return base64.b64encode(json.dumps(data).encode()).decode()
-
-def verify_session_token(token):
-    try:
-        data = json.loads(base64.b64decode(token).decode())
-        return data.get("authenticated") and data.get("expires", 0) > time.time()
-    except:
-        return False
-
-# ---------- EAT → Access Token ----------
-PLATFORM_MAP = {3: "Facebook", 4: "Guest", 5: "VK", 8: "Google", 10: "AppleId", 11: "X (Twitter)"}
-
-def extract_params_from_url(url: str):
-    parsed = urlparse(url)
-    params = parse_qs(parsed.query)
-    result = {}
-    if 'access_token' in params:
-        result['access_token'] = params['access_token'][0]
-    if 'region' in params:
-        result['region'] = params['region'][0]
-    if 'account_id' in params:
-        result['game_uid'] = params['account_id'][0]
-    if 'nickname' in params:
-        result['nickname'] = params['nickname'][0]
-    if 'game' in params:
-        result['game'] = params['game'][0]
-    if 'lang' in params:
-        result['language'] = params['lang'][0]
-    return result
-
-def get_token_inspect_data(access_token: str):
-    try:
-        resp = requests.get(f"https://100067.connect.garena.com/oauth/token/inspect?token={access_token}", timeout=15, verify=False)
-        data = resp.json()
-        if 'open_id' in data and 'platform' in data:
-            return data
-    except:
-        pass
-    return None
-
-def eat_to_access_token(eat_token: str):
-    try:
-        callback_url = f"https://api-otrss.garena.com/support/callback/?access_token={eat_token}"
-        response = requests.get(callback_url, allow_redirects=True, timeout=30, verify=False)
-        if 'help.garena.com' in response.url:
-            params = extract_params_from_url(response.url)
-            if 'access_token' in params:
-                token_data = get_token_inspect_data(params['access_token'])
-                if token_data:
-                    return {
-                        'success': True,
-                        'access_token': params['access_token'],
-                        'expires_in': token_data.get('expires_in', 3600)
-                    }
-        return {'success': False, 'error': 'INVALID_EAT_TOKEN'}
-    except Exception as e:
-        return {'success': False, 'error': str(e)}
-
-# ---------- Revoke Access Token ----------
-def revoke_access_token(access_token: str):
-    url = f"https://100067.connect.garena.com/oauth/logout?access_token={access_token}&refresh_token=1380dcb63ab3a077dc05bdf0b25ba4497c403a5b4eae96d7203010eafa6c83a8"
-    try:
-        resp = requests.get(url, timeout=15, verify=False)
-        data = resp.json()
-        if data.get("result") == 0:
-            return {"success": True, "message": "Token revoked successfully"}
-        else:
-            return {"success": False, "error": f"Unexpected response: {data}"}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-# ---------- Routes ----------
-@app.route('/')
-def index():
-    html_content = '''<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -119,7 +29,7 @@ def index():
             border-radius: 42px;
             padding: 28px 22px;
             box-shadow: 0 25px 50px -8px rgba(0,0,0,0.8), 0 0 0 1px #ff880033 inset;
-            overflow-x: hidden;  /* 👈 prevents horizontal overflow */
+            overflow-x: hidden;
         }
         h1 {
             font-size: 2.2rem;
@@ -299,7 +209,6 @@ def index():
         .tab-content.active {
             display: block;
         }
-        /* ---------- FIXED DEVELOPER SECTION ---------- */
         .developer-item {
             display: flex;
             align-items: center;
@@ -311,7 +220,6 @@ def index():
             cursor: pointer;
             transition: 0.2s;
             width: 100%;
-            overflow: hidden;
             box-sizing: border-box;
         }
         .developer-item:hover {
@@ -322,7 +230,7 @@ def index():
             display: flex;
             flex-direction: column;
             flex: 1;
-            min-width: 0;  /* for text truncation */
+            min-width: 0;
         }
         .developer-info small {
             color: #ffaa33;
@@ -430,7 +338,6 @@ def index():
     </style>
 </head>
 <body>
-    <!-- Security Overlay -->
     <div id="codeOverlay" class="code-overlay">
         <div class="code-card">
             <h2>🔐 SB-X TOKEN MANAGER</h2>
@@ -445,7 +352,6 @@ def index():
         </div>
     </div>
 
-    <!-- Main Dashboard -->
     <div id="mainContent" class="card" style="display:none;">
         <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;">
             <h1>🔥 SB X FF <span class="badge">TOKEN MANAGER</span></h1>
@@ -459,7 +365,6 @@ def index():
             <button class="tab-btn" id="tab3">DEVELOPER</button>
         </div>
 
-        <!-- Tab 1 -->
         <div id="tab1Content" class="tab-content active">
             <div class="section-card">
                 <div><span class="eat-badge">🍽️ GET EAT TOKEN</span></div>
@@ -489,7 +394,6 @@ def index():
             </div>
         </div>
 
-        <!-- Tab 2 -->
         <div id="tab2Content" class="tab-content">
             <div class="section-card">
                 <div><span class="eat-badge">🍽️ EAT → ACCESS TOKEN</span></div>
@@ -520,7 +424,6 @@ def index():
             </div>
         </div>
 
-        <!-- Tab 3: DEVELOPER (Fixed) -->
         <div id="tab3Content" class="tab-content">
             <div class="section-card">
                 <div><span class="eat-badge">👨‍💻 DEVELOPER</span></div>
@@ -600,7 +503,6 @@ def index():
         }
         if(!checkSession()) { overlay.style.display = 'flex'; mainContent.style.display = 'none'; }
 
-        // Tabs
         const tab1 = document.getElementById('tab1'), tab2 = document.getElementById('tab2'), tab3 = document.getElementById('tab3');
         const c1 = document.getElementById('tab1Content'), c2 = document.getElementById('tab2Content'), c3 = document.getElementById('tab3Content');
         function activate(t) {
@@ -627,7 +529,6 @@ def index():
             return response;
         }
 
-        // Convert EAT
         const convertBtn = document.getElementById('convertBtn');
         const convertBtnTextSpan = document.getElementById('convertBtnText');
         const convertLoaderSpan = document.getElementById('convertLoader');
@@ -659,7 +560,6 @@ def index():
         convertBtn.onclick = convertEat;
         eatInput.onkeypress = e => { if(e.key === 'Enter') convertEat(); };
 
-        // Revoke
         const revokeBtn = document.getElementById('revokeBtn');
         const revokeBtnTextSpan = document.getElementById('revokeBtnText');
         const revokeLoaderSpan = document.getElementById('revokeLoader');
@@ -689,54 +589,9 @@ def index():
         revokeBtn.onclick = revokeToken;
         revokeInput.onkeypress = e => { if(e.key === 'Enter') revokeToken(); };
 
-        // Copy token
         accessSpan.onclick = () => {
             if(accessSpan.innerText !== '---') navigator.clipboard.writeText(accessSpan.innerText);
         };
     </script>
 </body>
-</html>'''
-    return html_content
-
-@app.route('/api/verify-code', methods=['POST'])
-def verify_code():
-    data = request.get_json()
-    code = data.get('code', '').strip().upper()
-    if code == 'SB':
-        return jsonify({'success': True, 'token': create_session_token(), 'expires_in': 600})
-    return jsonify({'error': 'Invalid security code'}), 401
-
-@app.route('/api/convert-eat', methods=['POST'])
-def convert_eat():
-    auth = request.headers.get('Authorization')
-    if not auth or not auth.startswith('Bearer '):
-        return jsonify({'error': 'Missing token'}), 401
-    if not verify_session_token(auth.split(' ')[1]):
-        return jsonify({'error': 'Session expired'}), 401
-    data = request.get_json()
-    eat_token = data.get('eat_token')
-    if not eat_token:
-        return jsonify({'error': 'eat_token required'}), 400
-    result = eat_to_access_token(eat_token)
-    if result.get('success'):
-        return jsonify({'access_token': result['access_token'], 'expires_in': result.get('expires_in', 3600)})
-    return jsonify({'error': result.get('error', 'Conversion failed')}), 400
-
-@app.route('/api/revoke-access', methods=['POST'])
-def revoke_access():
-    auth = request.headers.get('Authorization')
-    if not auth or not auth.startswith('Bearer '):
-        return jsonify({'error': 'Missing token'}), 401
-    if not verify_session_token(auth.split(' ')[1]):
-        return jsonify({'error': 'Session expired'}), 401
-    data = request.get_json()
-    access_token = data.get('access_token')
-    if not access_token:
-        return jsonify({'error': 'access_token required'}), 400
-    result = revoke_access_token(access_token)
-    if result.get('success'):
-        return jsonify({'message': result['message']})
-    return jsonify({'error': result.get('error', 'Revoke failed')}), 400
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8000, debug=True)
+</html>
